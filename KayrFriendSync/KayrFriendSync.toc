@@ -1,0 +1,8 @@
+## Interface: 90002
+## Title: KayrFriendSync
+## Author: Kvalyr
+## Notes: Sync friends lists across alts
+## Version: 0.1.0
+## SavedVariables: KayrFriendSync_SV
+
+KayrFriendSync.lua
