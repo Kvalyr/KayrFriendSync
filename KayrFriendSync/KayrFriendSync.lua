@@ -3,19 +3,17 @@
 -- =	Copyright (c) Kvalyr - 2020-2021 - All Rights Reserved
 -- ====================================================================================================================
 local hooksecurefunc = _G["hooksecurefunc"]
-local C_FriendList = _G["C_FriendList"]
 local C_Timer = _G["C_Timer"]
 local CreateFrame = _G["CreateFrame"]
 local GetRealmName = _G["GetRealmName"]
 local UnitFactionGroup = _G["UnitFactionGroup"]
-local UnitName = _G["UnitName"]
 -- ====================================================================================================================
-
 -- Debugging
 local KLib = _G["KLib"]
 if not KLib then
     KLib = {Con = function() end, Warn = function() end, Print = print} -- No-Op if KLib not available
 end
+-- ====================================================================================================================
 
 -- --------------------------------------------------------------------------------------------------------------------
 -- Addon class
@@ -29,171 +27,99 @@ KayrFriendSync.showMissionHookDone = false
 -- --------------------------------------------------------
 
 -- --------------------------------------------------------------------------------------------------------------------
--- GetFactionSavedVars / UpdateFactionSavedVars
+-- GetSettings
 -- --------------------------------------------------------
-function KayrFriendSync:GetFactionSavedVars()
-    if not self.initDone then return end
-    local factionSavedVars = _G["KayrFriendSync_SV"]["friends"][self.playerRealm][self.playerFaction]
-    return factionSavedVars
-end
-
-function KayrFriendSync:UpdateFactionSavedVars(newRealmSavedVars)
-    if not self.initDone then return end
-    _G["KayrFriendSync_SV"]["friends"][self.playerRealm][self.playerFaction] = newRealmSavedVars
+function KayrFriendSync:GetSettings()
+    return _G["KayrFriendSync_SV"].settings
 end
 
 -- --------------------------------------------------------------------------------------------------------------------
--- Hooks
+-- InitSavedVariables
 -- --------------------------------------------------------
-function KayrFriendSync.Hook_AddFriend(name, notes, ...)
-    KLib:Con("KayrFriendSync", "Hooked AddFriend()", name, notes, ...)
-    C_FriendList.ShowFriends()
-    -- Delay a few seconds to give the server time to sync
-    C_Timer.After(3, function() KayrFriendSync:SaveFriend(C_FriendList.GetFriendInfo(name), true) end)
-    return ...
-end
-
-function KayrFriendSync.Hook_RemoveFriend(name, ...)
-    KLib:Con("KayrFriendSync", "Hooked RemoveFriend()", name, ...)
-    C_FriendList.ShowFriends()
-    KayrFriendSync:RemoveFriend(name)
-    return ...
-end
-
-function KayrFriendSync.Hook_SetFriendNotes(name, newNote, ...)
-    KLib:Con("KayrFriendSync", "Hooked SetFriendNotes()", name, newNote, ...)
-    C_FriendList.ShowFriends()
-    KayrFriendSync:SaveFriend(C_FriendList.GetFriendInfo(name), true)
-    return ...
-end
-
-function KayrFriendSync.Hook_AddOrRemoveFriend(name, ...)
-    KLib:Con("KayrFriendSync", "Hooked AddOrRemoveFriend()", name, ...)
-    C_FriendList.ShowFriends()
-    if C_FriendList.GetFriendInfo(name) then
-        KayrFriendSync:RemoveFriend(name)
-    else
-        KayrFriendSync:SaveFriend(C_FriendList.GetFriendInfo(name), true)
+function KayrFriendSync:InitAccountSavedVariables()
+    if not _G["KayrFriendSync_SV"] then
+        _G["KayrFriendSync_SV"] = {
+            friends={[self.playerRealm] = {}},
+            ignores={[self.playerRealm] = {}},
+            settings={enabled=false, ignores_enabled=false},
+        }
     end
-    return ...
-end
 
-
--- --------------------------------------------------------------------------------------------------------------------
--- SaveFriend
--- --------------------------------------------------------
-function KayrFriendSync:RemoveFriend(name, playerRealm)
-    playerRealm = playerRealm or GetRealmName()
-    local factionSavedVars = KayrFriendSync:GetFactionSavedVars()
-    factionSavedVars[name] = nil
-    KLib:Warn("KayrFriendSync", "Removing friend:", name)
-    KayrFriendSync:UpdateFactionSavedVars(factionSavedVars)
-end
-
--- --------------------------------------------------------------------------------------------------------------------
--- SaveFriend
--- --------------------------------------------------------
-function KayrFriendSync:SaveFriend(friendInfo, updateNotes)
-    if not friendInfo then return end -- TODO: Logging
-
-    local playerName = UnitName("player")
-    local playerRealm = GetRealmName()
-
-    local newFriend = {}
-    newFriend.faction = UnitFactionGroup("player")
-    newFriend.guid = friendInfo.guid
-    newFriend.name = friendInfo.name
-    newFriend.notes = friendInfo.notes
-    newFriend.realm = playerRealm
-    newFriend.sourceCharacter = playerName
-
-    local factionSavedVars = KayrFriendSync:GetFactionSavedVars()
-    local existingFriend = factionSavedVars[friendInfo.name]
-    if existingFriend then
-        KLib:Warn("KayrFriendSync", "Existing friend:", existingFriend.name)
-        if ((not existingFriend.notes or existingFriend.notes == "") and newFriend.notes and newFriend.notes ~= "") and (existingFriend.notes ~= newFriend.notes) then
-            updateNotes = true
-        end
-        if updateNotes then
-            KLib:Con("KayrFriendSync", "Updating notes for:", newFriend.name, "->", newFriend.notes)
-            existingFriend.notes = newFriend.notes
-            factionSavedVars[existingFriend.name] = existingFriend
-        end
-    else
-        KLib:Con("KayrFriendSync", "New friend:", newFriend.name)--, KLib.to.Str(newFriend))
-        factionSavedVars[friendInfo.name] = newFriend
+    -- Friends
+    if not _G["KayrFriendSync_SV"].friends then _G["KayrFriendSync_SV"].friends = {} end
+    if not _G["KayrFriendSync_SV"].friends[self.playerRealm] then
+        _G["KayrFriendSync_SV"].friends[self.playerRealm] = {}
     end
-    KayrFriendSync:UpdateFactionSavedVars(factionSavedVars)
-end
+    if not _G["KayrFriendSync_SV"].friends[self.playerRealm][self.playerFaction] then
+        _G["KayrFriendSync_SV"].friends[self.playerRealm][self.playerFaction] = {}
+    end
 
--- --------------------------------------------------------------------------------------------------------------------
--- DumpFriends
--- --------------------------------------------------------
-function KayrFriendSync.DumpFriends()
-    -- Refresh from server
-    C_FriendList.ShowFriends()
-
-    local numFriends = C_FriendList.GetNumFriends()
-    for i=1, numFriends do
-        local friendInfo = C_FriendList.GetFriendInfoByIndex(i)
-        KLib:Print("index:", i, "friendInfoType:", type(friendInfo), "friendInfo:", friendInfo.name, friendInfo.notes, friendInfo.guid)
+    -- Ignores
+    -- TODO: Do we need to filter by realm for ignores?
+    -- Need to confirm logic for ignoring people from other realms such as in BGs, dungeons etc.
+    -- Seems to be okay to include realm in the name and otherwise disregard it for our purposes
+    if not _G["KayrFriendSync_SV"].ignores then _G["KayrFriendSync_SV"].ignores = {} end
+    if not _G["KayrFriendSync_SV"].ignores[self.playerRealm] then
+        _G["KayrFriendSync_SV"].ignores[self.playerRealm] = {}
     end
 end
 
 -- --------------------------------------------------------------------------------------------------------------------
--- DumpFriends
+-- InitCharacterSavedVariables
 -- --------------------------------------------------------
-function KayrFriendSync:DumpSavedFriends()
-    local factionSavedVars = KayrFriendSync:GetFactionSavedVars()
-    for name, info in pairs(factionSavedVars) do
-        KLib:Con("KayrFriendSync", "Saved Friend:", name, KLib.to.Str(info))
+function KayrFriendSync:InitCharacterSavedVariables()
+    if not _G["KayrFriendSync_SVPC"] or not _G["KayrFriendSync_SVPC"].characterSeenBefore then
+        _G["KayrFriendSync_SVPC"] = {characterSeenBefore=false}
+        return true
     end
+    return false
 end
 
 -- --------------------------------------------------------------------------------------------------------------------
--- SaveAllFriends
+-- OnNewCharacter
 -- --------------------------------------------------------
-function KayrFriendSync:SaveAllFriends()
-    -- Refresh from server
-    C_FriendList.ShowFriends()
+function KayrFriendSync:OnNewCharacter()
+    self:SaveAllFriends()
+    self:SaveAllIgnores()
 
-    local numFriends = C_FriendList.GetNumFriends()
-    for i=1, numFriends do
-        local friendInfo = C_FriendList.GetFriendInfoByIndex(i)
-        -- KLib:Con("index:", i, "friendInfoType:", type(friendInfo), "friendInfo:", friendInfo.name, friendInfo.notes, friendInfo.guid)
-        self:SaveFriend(friendInfo)
-    end
+    -- Mark this player character as seen before so that we don't run this method on every login
+    _G["KayrFriendSync_SVPC"].characterSeenBefore = true
 end
 
 -- --------------------------------------------------------------------------------------------------------------------
--- SyncFromSavedFriends
+-- OnEnable
 -- --------------------------------------------------------
-function KayrFriendSync:SyncFromSavedFriends()
-    KLib:Con("KayrFriendSync", "SyncFromSavedFriends()")
-    local factionSavedVars = KayrFriendSync:GetFactionSavedVars()
-    for name, info in pairs(factionSavedVars) do
-        local existingFriend = C_FriendList.GetFriendInfo(name)
-        if existingFriend then
-            if info.notes ~= existingFriend.notes  then
-                KLib:Con("KayrFriendSync", "Updating notes from saved friend:", name)--, KLib.to.Str(info))
-                C_FriendList.SetFriendNotes(name, info.notes)
-            else
-                KLib:Con("KayrFriendSync", "Friend already up to date:", name)--, KLib.to.Str(info))
-            end
-        else
-            KLib:Con("KayrFriendSync", "Adding friend from Saved Friends:", name)--, KLib.to.Str(info))
-            C_FriendList.AddFriend(name, info.notes)
-        end
+function KayrFriendSync:OnEnable()
+    local newChar = self:InitCharacterSavedVariables()
+    if newChar then
+        self:OnNewCharacter()
+    -- else
+        -- Rely on hooks from hereon for this character instead
     end
+    KayrFriendSync:SyncFromSavedFriends()
 end
 
+-- --------------------------------------------------------------------------------------------------------------------
+-- OnEnableIgnores
+-- --------------------------------------------------------
+function KayrFriendSync:OnEnableIgnores()
+    local newChar = self:InitCharacterSavedVariables()
+    if newChar then
+        self:OnNewCharacter(true)
+    -- else
+        -- Rely on hooks from hereon for this character instead
+    end
+    KayrFriendSync:SyncFromSavedIgnores()
+end
 
 -- --------------------------------------------------------------------------------------------------------------------
 -- Init
 -- --------------------------------------------------------
 function KayrFriendSync:Init()
-    KLib:Con("KayrFriendSync.Init")
+    -- KLib:Con("KayrFriendSync.Init")
     if self.initDone then return end
+
+    -- Friends
     hooksecurefunc(_G["C_FriendList"], "AddFriend", KayrFriendSync.Hook_AddFriend)
     hooksecurefunc(_G["C_FriendList"], "RemoveFriend", KayrFriendSync.Hook_RemoveFriend)
     hooksecurefunc(_G["C_FriendList"], "AddOrRemoveFriend", KayrFriendSync.Hook_AddOrRemoveFriend)
@@ -201,29 +127,75 @@ function KayrFriendSync:Init()
     -- TODO: RemoveFriendByIndex -- More difficult. Before/after check by pre-hooking?
     -- TODO: SetFriendNotesByIndex -- More difficult. Before/after check by pre-hooking?
 
-    local playerRealm = GetRealmName()
-    KayrFriendSync.playerRealm = playerRealm
+    -- Ignores
+    hooksecurefunc(_G["C_FriendList"], "AddIgnore", KayrFriendSync.Hook_AddIgnore)
+    hooksecurefunc(_G["C_FriendList"], "DelIgnore", KayrFriendSync.Hook_DelIgnore)
+    hooksecurefunc(_G["C_FriendList"], "AddOrDelIgnore", KayrFriendSync.Hook_AddOrDelIgnore)
 
-    local playerFaction = UnitFactionGroup("player")
-    KayrFriendSync.playerFaction = playerFaction
+    -- UI Updates
+    hooksecurefunc(_G, "FriendsFrame_Update", KayrFriendSync.Hook_FriendsFrame_Update)  -- UI
 
-    if not _G["KayrFriendSync_SV"] then _G["KayrFriendSync_SV"] = {friends={}} end
-    if not _G["KayrFriendSync_SV"].friends[playerRealm] then
-        _G["KayrFriendSync_SV"].friends[playerRealm] = {}
-    end
-    if not _G["KayrFriendSync_SV"].friends[playerRealm][playerFaction] then
-        _G["KayrFriendSync_SV"].friends[playerRealm][playerFaction] = {}
-    end
+    KayrFriendSync.playerRealm = GetRealmName()
+    KayrFriendSync.playerFaction = UnitFactionGroup("player")
 
-
+    self:InitAccountSavedVariables()
     self.initDone = true
+
+    if self:GetSettings().enabled then
+        self:OnEnable()
+    end
+    if self:GetSettings().ignores_enabled then
+        self:OnEnableIgnores()
+    end
+
+    -- Set up UI changes (Toggle buttons)
+    KayrFriendSync:ModifyFriendsFrame()
+
 end
 
 -- --------------------------------------------------------------------------------------------------------------------
--- Listen for Blizz Garrison UI being loaded
+-- Enable/Disable/Toggle
+-- --------------------------------------------------------
+function KayrFriendSync:Enable()
+    _G["KayrFriendSync_SV"].settings.enabled = true
+    self:OnEnable()
+end
+
+function KayrFriendSync:Disable()
+    _G["KayrFriendSync_SV"].settings.enabled = false
+end
+
+function KayrFriendSync:EnableIgnores()
+    _G["KayrFriendSync_SV"].settings.ignores_enabled = true
+    self:OnEnableIgnores()
+end
+
+function KayrFriendSync:DisableIgnores()
+    _G["KayrFriendSync_SV"].settings.ignores_enabled = false
+end
+
+function KayrFriendSync:Toggle(toggleValue, ignores)
+    -- KLib:Con(self, "Toggle", toggleValue, ignores)
+    if toggleValue then
+        if ignores then
+            KayrFriendSync:EnableIgnores()
+        end
+        KayrFriendSync:Enable()
+    else
+        if ignores then
+            KayrFriendSync:DisableIgnores()
+        end
+        KayrFriendSync:Disable()
+    end
+end
+
+-- --------------------------------------------------------------------------------------------------------------------
+-- Login Event
 -- --------------------------------------------------------
 function KayrFriendSync:PLAYER_LOGIN(event, addon)
-    KayrFriendSync:Init()
+    -- Delay initialization for some time after the event to give the server time to populate friend info
+    C_Timer.After(7, function() KayrFriendSync:Init() end)
+
 end
 
 KayrFriendSync:RegisterEvent("PLAYER_LOGIN")

@@ -4,5 +4,9 @@
 ## Notes: Sync friends lists across alts
 ## Version: 0.1.0
 ## SavedVariables: KayrFriendSync_SV
+## SavedVariablesPerCharacter: KayrFriendSync_SVPC
 
 KayrFriendSync.lua
+Friends.lua
+Ignores.lua
+UI.lua
