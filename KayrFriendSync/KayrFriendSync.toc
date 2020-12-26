@@ -2,7 +2,7 @@
 ## Title: KayrFriendSync
 ## Author: Kvalyr
 ## Notes: Sync friends lists across alts
-## Version: 0.1.1
+## Version: 0.1.2
 ## SavedVariables: KayrFriendSync_SV
 ## SavedVariablesPerCharacter: KayrFriendSync_SVPC
 

@@ -241,10 +241,12 @@ function KayrFriendSync:SyncFromSavedFriends_Immediate(showFriendsCalled)
             end
         else
             -- KLib:Con("KayrFriendSync", "Adding friend from Saved Friends:", name)--, KLib.to.Str(info))
-            if canAddMore then
-                C_FriendList.AddFriend(name, info.notes, true)
+            if not info.removed then
+                if canAddMore then
+                    C_FriendList.AddFriend(name, info.notes, true)
+                end
+                numAdds = numAdds + 1  -- Increment if we *would* add if room were available
             end
-            numAdds = numAdds + 1
         end
     end
     C_Timer.After(5, function()
