@@ -219,6 +219,7 @@ function KayrFriendSync:SyncFromSavedFriends_Immediate(showFriendsCalled)
     local canAddMore = KayrFriendSync:CanAddMoreFriends()
     local numAdds = 0
     local numRemovals = 0
+    local removedNames = {}
 
     local factionSavedVars = self:GetSavedVarsFriendsTable()
     for name, info in pairs(factionSavedVars) do
@@ -228,6 +229,7 @@ function KayrFriendSync:SyncFromSavedFriends_Immediate(showFriendsCalled)
             if info.removed then
                 -- KLib:Con("KayrFriendSync", "Removing friend due to removed flag in Saved Ignores:", name)
                 C_FriendList.RemoveFriend(name)
+                removedNames[name] = true
                 numRemovals = numRemovals + 1
             else
                 if info.notes ~= existingFriend.notes  then
@@ -256,6 +258,9 @@ function KayrFriendSync:SyncFromSavedFriends_Immediate(showFriendsCalled)
         end
         if numRemovals > 0 then
             print("KayrFriendSync: " .. numRemovals .. " entries removed from friend list due to being removed on your other characters.")
+            for key in pairs(removedNames) do
+                print("Friend removed: '" .. key .. "'")
+            end
         end
     end)
 end
