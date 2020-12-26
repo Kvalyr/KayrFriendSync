@@ -23,13 +23,13 @@ function KayrFriendSync.Hook_FriendsFrame_Update(...)
     if selectedTab == 1 then
         KFSToggleButton:Show()
         KFSToggleButton:SetChecked(_G["KayrFriendSync_SV"].settings.enabled)
-        KFSToggleButtonText:SetText("Friends\nSync")
+        KFSToggleButtonText:SetText("Sync\nFriends")
         KFSToggleButton.tooltipText = "Click to toggle synchronization of your friends list across \nall of your characters that load the KayrFriendSync addon."
 
     elseif selectedTab == 2 then
         KFSToggleButton:Show()
         KFSToggleButton:SetChecked(_G["KayrFriendSync_SV"].settings.ignores_enabled)
-        KFSToggleButtonText:SetText("Ignores\nSync")
+        KFSToggleButtonText:SetText("Sync\nIgnores")
         KFSToggleButton.tooltipText = "Click to toggle synchronization of your ignore list across \nall of your characters that load the KayrFriendSync addon."
 
     else
