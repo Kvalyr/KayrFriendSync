@@ -47,7 +47,7 @@ function KayrFriendSync:ModifyFriendsFrame()
     if friendsFrameModified then return end
 
     local FriendsFrame = _G["FriendsFrame"]
-    local KFSToggleButton = CreateFrame("CheckButton", "KFSToggleButton", FriendsFrame, KLib.AddBackdropTemplate("OptionsSmallCheckButtonTemplate"))
+    local KFSToggleButton = CreateFrame("CheckButton", "KFSToggleButton", FriendsFrame, "OptionsSmallCheckButtonTemplate")
     KFSToggleButton:SetFrameStrata("HIGH")
     KFSToggleButton:ClearAllPoints()
     KFSToggleButton:SetPoint("TOPRIGHT", FriendsFrame, "TOPRIGHT", -5, -56)
@@ -66,16 +66,15 @@ function KayrFriendSync:ModifyFriendsFrame()
         end
     )
 
-    function KFSToggleButton:ShowTooltip()
-        local str = self.tooltipText
-        if KLib.is.StrNotEmpty(str) then
-            _G["GameTooltip"]:SetOwner(self, "ANCHOR_TOPLEFT")
-            _G["GameTooltip"]:SetText(self.tooltipText)
-            _G["GameTooltip"]:Show()
-        end
+    local function ShowTooltip()
+        _G["GameTooltip"]:SetOwner(self, "ANCHOR_TOPLEFT")
+        _G["GameTooltip"]:SetText(self.tooltipText or "")
+        _G["GameTooltip"]:Show()
     end
-    function KFSToggleButton:HideTooltip() _G["GameTooltip"]:Hide() end
-    KFSToggleButton:SetScript("OnEnter", KFSToggleButton.ShowTooltip)
-    KFSToggleButton:SetScript("OnLeave", KFSToggleButton.HideTooltip)
+    local function HideTooltip() _G["GameTooltip"]:Hide() end
+
+    KFSToggleButton:SetScript("OnEnter", ShowTooltip)
+    KFSToggleButton:SetScript("OnLeave", HideTooltip)
+
     friendsFrameModified = true
 end
