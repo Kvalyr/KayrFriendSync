@@ -16,25 +16,29 @@ local CreateFrame = _G["CreateFrame"]
 -- --------------------------------------------------------
 function KayrFriendSync.Hook_FriendsFrame_Update(...)
     -- KLib:Con("KayrFriendSync", "Hooked FriendsFrame_Update()", ...)
-    local selectedTab = _G["FriendsTabHeader"].selectedTab
+    local selectedFrameTab = _G["FriendsFrame"].selectedTab
+    local selectedHeaderTab = _G["FriendsTabHeader"].selectedTab
     local KFSToggleButton = _G["KFSToggleButton"]
     local KFSToggleButtonText = _G["KFSToggleButtonText"]
 
-    if selectedTab == 1 then
-        KFSToggleButton:Show()
-        KFSToggleButton:SetChecked(_G["KayrFriendSync_SV"].settings.enabled)
-        KFSToggleButtonText:SetText("Sync\nFriends")
-        KFSToggleButton.tooltipText = "Click to toggle synchronization of your friends list across \nall of your characters that load the KayrFriendSync addon."
 
-    elseif selectedTab == 2 then
-        KFSToggleButton:Show()
-        KFSToggleButton:SetChecked(_G["KayrFriendSync_SV"].settings.ignores_enabled)
-        KFSToggleButtonText:SetText("Sync\nIgnores")
-        KFSToggleButton.tooltipText = "Click to toggle synchronization of your ignore list across \nall of your characters that load the KayrFriendSync addon."
+    if selectedFrameTab == 1 then
+        if selectedHeaderTab == 1 then
+            KFSToggleButton:Show()
+            KFSToggleButton:SetChecked(_G["KayrFriendSync_SV"].settings.enabled)
+            KFSToggleButtonText:SetText("Sync\nFriends")
+            KFSToggleButton.tooltipText = "Click to toggle synchronization of your friends list across \nall of your characters that load the KayrFriendSync addon."
 
+        elseif selectedHeaderTab == 2 then
+            KFSToggleButton:Show()
+            KFSToggleButton:SetChecked(_G["KayrFriendSync_SV"].settings.ignores_enabled)
+            KFSToggleButtonText:SetText("Sync\nIgnores")
+            KFSToggleButton.tooltipText = "Click to toggle synchronization of your ignore list across \nall of your characters that load the KayrFriendSync addon."
+        else
+            KFSToggleButton:Hide()
+        end
     else
         KFSToggleButton:Hide()
-
     end
     return ...
 end
