@@ -14,7 +14,7 @@ if not KLib then
     KLib = {Con = function() end, Warn = function() end, Print = print} -- No-Op if KLib not available
 end
 -- ====================================================================================================================
-local IGNORES = true
+local MAX_IGNORES = 50
 
 -- --------------------------------------------------------------------------------------------------------------------
 -- Hooks
@@ -159,10 +159,26 @@ function KayrFriendSync:SaveAllIgnores()
 end
 
 -- --------------------------------------------------------------------------------------------------------------------
--- CanAddMoreFriends
+-- IsAlreadyIgnored
+-- C_FriendList.IsIgnored(name) is unreliable - It erroneously returns false for cross-realm ignores
 -- --------------------------------------------------------
-function KayrFriendSync:CanAddMoreIgnores()
-    if C_FriendList.GetNumIgnores() >= 50 then
+function KayrFriendSync.IsAlreadyIgnored(name)
+    for i=1, MAX_IGNORES do
+        local ignoredName = C_FriendList.GetIgnoreName(i)
+        if not ignoredName then  -- ignoredName is nil once index is out of bounds
+            return
+        end
+        if name == ignoredName then
+            return true
+        end
+    end
+end
+
+-- --------------------------------------------------------------------------------------------------------------------
+-- CanAddMoreIgnores
+-- --------------------------------------------------------
+function KayrFriendSync.CanAddMoreIgnores()
+    if C_FriendList.GetNumIgnores() >= MAX_IGNORES then
         return false
     end
     return true
@@ -173,11 +189,11 @@ end
 -- --------------------------------------------------------
 function KayrFriendSync:SyncFromSavedIgnores()
     local enabled = self:GetSettings().ignores_enabled
-    -- KLib:Con("KayrFriendSync", "SyncFromSavedIgnores()", enabled)
     if not enabled then return end
     C_FriendList.ShowFriends()
     C_Timer.After(5, function() self:SyncFromSavedIgnores_Immediate(true) end)
 end
+
 
 -- --------------------------------------------------------------------------------------------------------------------
 -- SyncFromSavedIgnores_Immediate
@@ -185,29 +201,25 @@ end
 -- --------------------------------------------------------
 function KayrFriendSync:SyncFromSavedIgnores_Immediate(showFriendsCalled)
     local enabled = self:GetSettings().ignores_enabled
-    -- KLib:Con("KayrFriendSync", "SyncFromSavedIgnores_Immediate()", enabled)
     if not enabled then return end
     if not showFriendsCalled then
         C_FriendList.ShowFriends()
     end
 
-    local canAddMore = KayrFriendSync:CanAddMoreIgnores()
+    local canAddMore = KayrFriendSync.CanAddMoreIgnores()
     local numAdds = 0
     local numRemovals = 0
 
     local ignoresSavedVars = KayrFriendSync:GetSavedVarsIgnoresTable()
     for name, info in pairs(ignoresSavedVars) do
-        local existingIgnore = C_FriendList.IsIgnored(name)
+        local existingIgnore = KayrFriendSync.IsAlreadyIgnored(name)
         if existingIgnore then
             if info.removed then
-                -- KLib:Con("KayrFriendSync", "Removing ignore due to removed flag in Saved Ignores:", name)
                 C_FriendList.DelIgnore(name)
                 numRemovals = numRemovals + 1
             else
-                -- KLib:Con("KayrFriendSync", "Ignore already up to date:", name, info.removed)
             end
         else
-            -- KLib:Con("KayrFriendSync", "Adding ignore from Saved Ignores:", name)
             local addSuccess = false
             if canAddMore then
                 addSuccess = C_FriendList.AddIgnore(name, true)

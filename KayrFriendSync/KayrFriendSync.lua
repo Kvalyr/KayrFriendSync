@@ -7,6 +7,7 @@ local C_Timer = _G["C_Timer"]
 local CreateFrame = _G["CreateFrame"]
 local GetRealmName = _G["GetRealmName"]
 local UnitFactionGroup = _G["UnitFactionGroup"]
+local UnitName = _G["UnitName"]
 -- ====================================================================================================================
 -- Debugging
 local KLib = _G["KLib"]
@@ -53,6 +54,9 @@ function KayrFriendSync:InitAccountSavedVariables()
     if not _G["KayrFriendSync_SV"].friends[self.playerRealm][self.playerFaction] then
         _G["KayrFriendSync_SV"].friends[self.playerRealm][self.playerFaction] = {}
     end
+
+    -- Make sure we don't try to add a character from this account as a friend, it just produces errors in chat frame
+    _G["KayrFriendSync_SV"].friends[self.playerRealm][self.playerFaction][UnitName("player")] = nil
 
     -- Ignores
     -- TODO: Do we need to filter by realm for ignores?
