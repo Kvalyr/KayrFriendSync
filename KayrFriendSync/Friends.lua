@@ -232,7 +232,7 @@ function KayrFriendSync:SyncFromSavedFriends_Immediate(showFriendsCalled)
                 removedNames[name] = true
                 numRemovals = numRemovals + 1
             else
-                if info.notes ~= existingFriend.notes  then
+                if info.notes and info.notes ~= existingFriend.notes  then
                     -- KLib:Con("KayrFriendSync", "Updating notes from saved friend:", name)--, KLib.to.Str(info))
                     C_FriendList.SetFriendNotes(name, info.notes)
                 -- else
