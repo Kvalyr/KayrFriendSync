@@ -77,6 +77,7 @@ end
 
 -- --------------------------------------------------------------------------------------------------------------------
 -- RemoveSavedFriend
+-- Marks the name as 'removed' in SV
 -- --------------------------------------------------------
 function KayrFriendSync:RemoveSavedFriend(name, playerRealm)
     playerRealm = playerRealm or GetRealmName()
@@ -86,6 +87,21 @@ function KayrFriendSync:RemoveSavedFriend(name, playerRealm)
         -- KLib:Warn("KayrFriendSync", "Removing friend:", name)
         existingFriend.removed = true
         factionSavedVars[name] = existingFriend
+    end
+    self:UpdateSavedVarsFriendsTable(factionSavedVars)
+end
+
+-- --------------------------------------------------------------------------------------------------------------------
+-- DeleteSavedFriend
+-- Fully deletes the name-table from SV
+-- --------------------------------------------------------
+function KayrFriendSync:DeleteSavedFriend(name, playerRealm)
+    playerRealm = playerRealm or GetRealmName()
+    local factionSavedVars = self:GetSavedVarsFriendsTable()
+    local existingFriend = factionSavedVars[name]
+    if existingFriend then
+        KLib:Warn("KayrFriendSync", "Deleting friend entirely from SV:", name)
+        factionSavedVars[name] = nil
     end
     self:UpdateSavedVarsFriendsTable(factionSavedVars)
 end
@@ -205,6 +221,19 @@ function KayrFriendSync:SyncFromSavedFriends()
 end
 
 -- --------------------------------------------------------------------------------------------------------------------
+-- AddFriend
+-- --------------------------------------------------------
+function KayrFriendSync.AddFriend(friendName, notes)
+    C_FriendList.AddFriend(friendName, notes, true)
+    if C_FriendList.GetFriendInfo(friendName) then
+        return true
+    end
+
+    KLib:Con("KayrFriendSync", "Failed to add friend - Might not exist?", friendName)
+    return false
+end
+
+-- --------------------------------------------------------------------------------------------------------------------
 -- SyncFromSavedFriends_Immediate
 -- Add friends in-game from those stored in SavedVariables from player alts
 -- --------------------------------------------------------
@@ -240,10 +269,15 @@ function KayrFriendSync:SyncFromSavedFriends_Immediate(showFriendsCalled)
                 end
             end
         else
-            -- KLib:Con("KayrFriendSync", "Adding friend from Saved Friends:", name)--, KLib.to.Str(info))
             if not info.removed then
+                -- KLib:Con("KayrFriendSync", "Adding friend from Saved Friends:", name)--, KLib.to.Str(info))
                 if canAddMore then
-                    C_FriendList.AddFriend(name, info.notes, true)
+                    -- C_FriendList.AddFriend(name, info.notes, true)
+                    local success = KayrFriendSync.AddFriend(name, info.notes)
+                    if not success then
+                        -- KLib:Con("KayrFriendSync", "Failed to add friend - Might not exist? Deleting from SV", name)
+                        KayrFriendSync:DeleteSavedFriend(name)
+                    end
                 end
                 numAdds = numAdds + 1  -- Increment if we *would* add if room were available
             end

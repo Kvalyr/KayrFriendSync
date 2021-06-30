@@ -69,6 +69,7 @@ end
 
 -- --------------------------------------------------------------------------------------------------------------------
 -- RemoveSavedIgnore
+-- Marks the name as 'removed' in SV
 -- --------------------------------------------------------
 function KayrFriendSync:RemoveSavedIgnore(name)
     local ignoresSavedVars = KayrFriendSync:GetSavedVarsIgnoresTable()
@@ -77,6 +78,20 @@ function KayrFriendSync:RemoveSavedIgnore(name)
         KLib:Warn("KayrFriendSync", "Removing ignore:", name)
         existingIgnore.removed = true
         ignoresSavedVars[name] = existingIgnore
+    end
+    KayrFriendSync:UpdateSavedVarsIgnoresTable(ignoresSavedVars)
+end
+
+-- --------------------------------------------------------------------------------------------------------------------
+-- DeleteSavedIgnore
+-- Fully deletes the name-table from SV
+-- --------------------------------------------------------
+function KayrFriendSync:DeleteSavedIgnore(name)
+    local ignoresSavedVars = KayrFriendSync:GetSavedVarsIgnoresTable()
+    local existingIgnore = ignoresSavedVars[name]
+    if existingIgnore then
+        KLib:Warn("KayrFriendSync", "Deleting ignore entirely from SV:", name)
+        ignoresSavedVars[name] = nil
     end
     KayrFriendSync:UpdateSavedVarsIgnoresTable(ignoresSavedVars)
 end
@@ -215,6 +230,7 @@ function KayrFriendSync:SyncFromSavedIgnores_Immediate(showFriendsCalled)
         local existingIgnore = KayrFriendSync.IsAlreadyIgnored(name)
         if existingIgnore then
             if info.removed then
+                -- KLib:Con("KayrFriendSync", "Attempting to del ignore marked as removed in SV:", name)
                 C_FriendList.DelIgnore(name)
                 numRemovals = numRemovals + 1
             else
@@ -223,6 +239,12 @@ function KayrFriendSync:SyncFromSavedIgnores_Immediate(showFriendsCalled)
             local addSuccess = false
             if canAddMore then
                 addSuccess = C_FriendList.AddIgnore(name, true)
+                addSuccess = KayrFriendSync.IsAlreadyIgnored(name)
+                -- KLib:Con("KayrFriendSync", "Attempting to add ignore from SV:", name, addSuccess)
+                if not addSuccess then
+                    -- KLib:Con("KayrFriendSync", "Failed to add ignore from SV - Deleting from SV:", name)
+                    KayrFriendSync:DeleteSavedIgnore(name)
+                end
             end
             -- Increment if we either successfully added someone to ignores, or if we can't but would try to (and possibly fail)
             if (not canAddMore) or addSuccess then
@@ -230,6 +252,7 @@ function KayrFriendSync:SyncFromSavedIgnores_Immediate(showFriendsCalled)
             end
         end
     end
+
     C_Timer.After(5, function()
         if not canAddMore then
             print("KayrFriendSync: Ignore limit reached - Cannot add additional ignores.")
